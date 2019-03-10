@@ -53,7 +53,7 @@ def query_command(args):
     loc = SimpleScrapingLocator(index_url, scheme='legacy')
     if '-' in pkgs:
         pkgs.remove('-')
-        pkgs.extend(sys.stdin.readlines())
+        pkgs.extend(json.load(sys.stdin))
     for pkg in pkgs:
         query = locate_digests(loc, pkg)
         print(json.dumps(query))
@@ -77,7 +77,7 @@ query_parser = subparsers.add_parser('query')
 query_parser.set_defaults(handler=query_command)
 query_parser.add_argument('package', nargs='+',
                          help='package(s) to query, if package is a single dash lines '
-                              'will be read from standard input')
+                              'will be read a json list from standard input')
 query_parser.add_argument('-i', '--index-url', default='https://pypi.org/simple',
                           help='url of python package index to query')
 
