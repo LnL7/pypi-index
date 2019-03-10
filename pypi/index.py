@@ -48,7 +48,9 @@ parser.set_defaults(handler=lambda args: parser.print_help())
 
 query_parser = subparsers.add_parser('query')
 query_parser.set_defaults(handler=query_command)
-query_parser.add_argument('package', nargs='+')
+query_parser.add_argument('package', nargs='+',
+                         help='list of package to query, if package is a single dash '
+                              'lines will be read from standard input')
 query_parser.add_argument('-i', '--index-url', default='https://pypi.org/simple',
                           help='url of python package index to query')
 
