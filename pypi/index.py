@@ -16,7 +16,8 @@ pypi_exprs = os.path.abspath(os.path.join(__file__, '..', '..', 'nix'))
 
 
 def build_nix_expression(path, *args, **kwargs):
-    argv = ['nix-build', '--no-out-link', path, '-I', 'pypi={}'.format(pypi_exprs)]
+    argv = ['nix-build', '--no-out-link', path,
+            '-I', 'pypi={}'.format(pypi_exprs)]
     argv.extend(args)
     for name, value in kwargs.items():
         argv.extend(['--arg', name, value])
@@ -64,11 +65,12 @@ def query_command(args):
     for pkg in pkgs:
         query = locate_digests(loc, pkg)
         if args.output_dir:
-            path = get_output_path(args.output_dir, query['name'], query['version'])
+            path = get_output_path(args.output_dir,
+                                   query['name'],
+                                   query['version'])
             with open(path, 'w') as f:
                 json.dump(query, f)
         print(json.dumps(query))
-
 
 
 def eval_command(args):
@@ -77,7 +79,9 @@ def eval_command(args):
         with open(out) as f:
             setup = json.load(f)
             if args.output_dir:
-                path = get_output_path(args.output_dir, setup['metadata']['name'], setup['metadata']['version'])
+                path = get_output_path(args.output_dir,
+                                       setup['metadata']['name'],
+                                       setup['metadata']['version'])
                 with open(path, 'w') as f:
                     json.dump(setup, f)
             print(json.dumps(setup))
@@ -93,16 +97,19 @@ parser.set_defaults(handler=lambda args: parser.print_help())
 query_parser = subparsers.add_parser('query')
 query_parser.set_defaults(handler=query_command)
 query_parser.add_argument('package', nargs='+',
-                         help='package(s) to query, if package is a single dash lines '
-                              'will be read a json list from standard input')
-query_parser.add_argument('-i', '--index-url', default='https://pypi.org/simple',
+                          help='package(s) to query, if package is a single '
+                               'dash lines will be read a json list from '
+                               'standard input')
+query_parser.add_argument('-i', '--index-url',
+                          default='https://pypi.org/simple',
                           help='url of python package index to query')
 query_parser.add_argument('-o', '--output-dir')
 
 eval_parser = subparsers.add_parser('eval')
 eval_parser.set_defaults(handler=eval_command)
 eval_parser.add_argument('-f', '--file', nargs='+', action='append',
-                        help='file(s) with package query metadata to evaluate')
+                         help='file(s) with package query metadata to '
+                              'evaluate')
 eval_parser.add_argument('-o', '--output-dir')
 eval_parser.add_argument('--eval-backend', default='nix', choices=('nix',))
 
