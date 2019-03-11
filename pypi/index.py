@@ -20,7 +20,7 @@ def build_nix_expression(path, *args, **kwargs):
             '-I', 'pypi={}'.format(pypi_exprs)]
     argv.extend(args)
     for name, value in kwargs.items():
-        argv.extend(['--arg', name, value])
+        argv.extend(['--argstr', name, value])
     output = subprocess.check_output(argv)
     return output.decode('utf-8')
 
@@ -49,9 +49,9 @@ def get_output_path(prefix, name, version):
     return os.path.join(output_dir, version)
 
 
-def eval_queries(files):
-    files_expr = '[' + ' '.join(files) + ']'
-    stdout = build_nix_expression('<pypi/setup.nix>', files=files_expr)
+def eval_queries(inputs):
+    stdout = build_nix_expression('<pypi/setup.nix>',
+                                  inputs=json.dumps(inputs))
     for out in stdout.splitlines():
         yield out
 
@@ -74,8 +74,16 @@ def query_command(args):
 
 
 def eval_command(args):
-    files = sum(args.file, [])
-    for out in eval_queries(files):
+    files = args.file
+    inputs = []
+    if '-' in files:
+        files.remove('-')
+        query = json.load(sys.stdin)
+        inputs = query if isinstance(query, list) else [query]
+    for path in files:
+        with open(path) as f:
+            inputs.append(json.load(f))
+    for out in eval_queries(inputs):
         with open(out) as f:
             setup = json.load(f)
             if args.output_dir:
@@ -98,7 +106,7 @@ query_parser = subparsers.add_parser('query')
 query_parser.set_defaults(handler=query_command)
 query_parser.add_argument('package', nargs='+',
                           help='package(s) to query, if package is a single '
-                               'dash lines will be read a json list from '
+                               'dash a json list will be read from '
                                'standard input')
 query_parser.add_argument('-i', '--index-url',
                           default='https://pypi.org/simple',
@@ -107,9 +115,10 @@ query_parser.add_argument('-o', '--output-dir')
 
 eval_parser = subparsers.add_parser('eval')
 eval_parser.set_defaults(handler=eval_command)
-eval_parser.add_argument('-f', '--file', nargs='+', action='append',
+eval_parser.add_argument('file', nargs='+',
                          help='file(s) with package query metadata to '
-                              'evaluate')
+                              'evaluate, if file is a single dash a json list '
+                              'will be read from standard input')
 eval_parser.add_argument('-o', '--output-dir')
 eval_parser.add_argument('--eval-backend', default='nix', choices=('nix',))
 

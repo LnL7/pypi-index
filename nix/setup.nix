@@ -1,15 +1,14 @@
 { pkgs ? import <nixpkgs> {}
 , interpreter ? "python3"
-, files ? []
+, inputs ? builtins.readFile /dev/stdin
 }:
 
 let
-    mkSetup = file: pkgs."${interpreter}".pkgs.callPackage
+    mkSetup = args: pkgs."${interpreter}".pkgs.callPackage
       ({ stdenv, fetchurl, unzip, python, pip, wheel, pyyaml, cffi, pbr, setuptools_scm, six }:
-      let query = builtins.fromJSON (builtins.readFile file); in
       stdenv.mkDerivation {
         name = "setup.json";
-        src = fetchurl query.fetchurl;
+        src = fetchurl args.fetchurl;
         buildInputs = [ unzip python pip wheel pyyaml cffi pbr setuptools_scm six ];
         phases = [ "unpackPhase" "installPhase" ];
         installPhase = ''
@@ -19,4 +18,4 @@ let
       }) { };
 in
 
-map mkSetup files
+map mkSetup (builtins.fromJSON inputs)
