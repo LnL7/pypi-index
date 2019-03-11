@@ -18,8 +18,10 @@ def to_value(x):
     return list(x) if isinstance(x, set) else x
 
 
-parser = argparse.ArgumentParser(prog='setup2json')
+parser = argparse.ArgumentParser(prog='setup')
 parser.add_argument('setup_file', nargs='?', default='setup.py')
+parser.add_argument('--name')
+parser.add_argument('--version')
 args = parser.parse_args()
 
 # Based on https://gist.github.com/shlevy/315d6b686065b31a0962d6e879cc0e32
@@ -41,5 +43,9 @@ options = {
 if cfg.zip_safe is not None:
     options['zip_safe'] = cfg.zip_safe
 
-data = {'metadata':  metadata, 'options': options}
+name = args.name or metadata['name']
+version = args.version or metadata['version']
+
+data = {'name': name, 'version': version,
+        'metadata':  metadata, 'options': options}
 print(json.dumps(data))

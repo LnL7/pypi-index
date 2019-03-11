@@ -37,7 +37,7 @@ def locate_digests(loc, pkg):
         url, (digest_algo, digest) = digests[0]
         return {'name': dist.name,
                 'version': dist.version,
-                'fetchurl': {'url': url, digest_algo: digest}}
+                'source': {'url': url, digest_algo: digest}}
     else:
         raise SystemExit('error: failed to locate package')
 
@@ -83,9 +83,13 @@ def eval_command(args):
     for path in files:
         with open(path) as f:
             inputs.append(json.load(f))
+
+    queries = {(x['name'], x['version']): x for x in inputs}
     for out in eval_queries(inputs):
         with open(out) as f:
             setup = json.load(f)
+            query = queries.get((setup['name'], setup['version']))
+            setup['source'] = query['source']
             if args.output_dir:
                 path = get_output_path(args.output_dir,
                                        setup['metadata']['name'],
