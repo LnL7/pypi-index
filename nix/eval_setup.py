@@ -31,21 +31,29 @@ with (getattr(tokenize, 'open', open))(args.setup_file) as setup_py:
     exec(compile(''.join(setup_py), __file__, 'exec'))
     cfg = setuptools.distutils.core._setup_distribution
 
-metadata = {k: to_value(v) for k, v in cfg.metadata.__dict__.items() if v}
-add_install_requires(cfg.extras_require, cfg.install_requires)
-options = {
-    'packages': cfg.packages or [],
-    'install_requires': cfg.install_requires or [],
-    'setup_requires': cfg.setup_requires or [],
-    'tests_require': cfg.tests_require or [],
-    'entry_points': cfg.entry_points or {}
-}
-if cfg.zip_safe is not None:
-    options['zip_safe'] = cfg.zip_safe
+metadata = {}
+for key in ('name', 'version', 'url', 'download_url', 'project_urls', 'author',
+            'author_email', 'maintainer', 'maintainer_email', 'classifiers',
+            'license', 'description', 'long_description', 'keywords',
+            'platforms', 'provides', 'requires', 'obsoletes'):
+    value = getattr(cfg.metadata, key)
+    if value or value is False:
+        metadata[key] = to_value(value)
+
+options = {}
+for key in ('zip_safe', 'setup_requires', 'install_requires', 'extras_require',
+            'python_requires', 'entry_points', 'use_2to3', 'use_2to3_fixers',
+            'use_2to3_exclude_fixers', 'convert_2to3_doctests', 'scripts',
+            'eager_resources', 'dependency_links', 'tests_require',
+            'include_package_data', 'packages', 'package_dir', 'package_data',
+            'exclude_package_data', 'namespace_packages', 'py_modules',
+            'data_files'):
+    value = getattr(cfg, key)
+    if value or value is False:
+        options[key] = to_value(value)
 
 name = args.name or metadata['name']
 version = args.version or metadata['version']
-
 data = {'name': name, 'version': version,
         'metadata':  metadata, 'options': options}
 print(json.dumps(data))
