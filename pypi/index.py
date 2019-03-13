@@ -6,6 +6,7 @@ __all__ = ('main',)
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -76,6 +77,51 @@ def eval_command(args):
             print(f.read())
 
 
+def expr_command(args):
+    files = args.file
+    inputs = []
+    if '-' in files:
+        files.remove('-')
+        query = json.load(sys.stdin)
+        inputs = query if isinstance(query, list) else [query]
+    for path in files:
+        with open(path) as f:
+            inputs.append(json.load(f))
+    print('{ pkgs, lib, callPackage }:')
+    print('{')
+    for cfg in inputs:
+        name, version = cfg['name'], cfg['version'].replace('.', '_')
+        setup_requires = [re.split(r'[<=>!]', x)[0] for x in
+                          cfg['options'].get('setup_requires', [])]
+        install_requires = [re.split(r'[<=>!]', x)[0] for x in
+                            cfg['options'].get('install_requires', [])]
+        nix_inputs = ['buildPythonPackage', 'fetchurl'] \
+                + setup_requires + install_requires
+        nix_description = cfg['metadata'].get('description')
+        nix_license = {'MIT': 'mit'}.get(cfg['metadata'].get('license'))
+        print('  %s_%s = callPackage' % (name, version))
+        print('    ({ %s }:' % ', '.join(set(nix_inputs)))
+        print('     buildPythonPackage rec {')
+        print('       pname = "%s";' % cfg['metadata']['name'])
+        print('       version = "%s";' % cfg['metadata']['version'])
+        print('       src = fetchurl {')
+        print('         url = "%s";' % cfg['fetchurl']['url'])
+        print('         sha256 = "%s";' % cfg['fetchurl']['sha256'])
+        print('       };')
+        if setup_requires:
+            print('       buildInputs = [ %s ];' % ' '.join(setup_requires))
+        if install_requires:
+            print('       propagatedBuildInputs = [ %s ];' % ' '.join(install_requires))
+        print('       meta = with lib; {')
+        if nix_description:
+            print('         description = "%s";' % nix_description)
+        if nix_license:
+            print('         license = licenses.%s;' % nix_license)
+        print('       };')
+        print('     }) { };')
+    print('}')
+
+
 parser = argparse.ArgumentParser(prog='pypi-index')
 subparsers = parser.add_subparsers()
 
@@ -100,6 +146,14 @@ eval_parser.add_argument('file', nargs='+',
                               'evaluate, if file is a single dash a json list '
                               'will be read from standard input')
 eval_parser.add_argument('--eval-backend', default='nix', choices=('nix',))
+
+expr_parser = subparsers.add_parser('expr')
+expr_parser.set_defaults(handler=expr_command)
+expr_parser.add_argument('file', nargs='+',
+                         help='file(s) with package query metadata to '
+                              'evaluate, if file is a single dash a json list '
+                              'will be read from standard input')
+expr_parser.add_argument('--output-type', default='nix', choices=('nix',))
 
 
 def main():
