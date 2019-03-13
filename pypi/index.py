@@ -35,18 +35,11 @@ def locate_digests(loc, pkg):
     if dist:
         digests = sorted(dist.digests.items(), key=digest_sort_key)
         url, (digest_algo, digest) = digests[0]
-        return {'name': dist.name,
+        return {'name': normalize_name(dist.name),
                 'version': dist.version,
                 'source': {'url': url, digest_algo: digest}}
     else:
         raise SystemExit('error: failed to locate package')
-
-
-def get_output_path(prefix, name, version):
-    name = normalize_name(name)
-    output_dir = os.path.join(prefix, name[:2], name)
-    os.makedirs(output_dir, exist_ok=True)
-    return os.path.join(output_dir, version)
 
 
 def eval_queries(inputs):
@@ -64,12 +57,6 @@ def query_command(args):
         pkgs.extend(json.load(sys.stdin))
     for pkg in pkgs:
         query = locate_digests(loc, pkg)
-        if args.output_dir:
-            path = get_output_path(args.output_dir,
-                                   query['name'],
-                                   query['version'])
-            with open(path, 'w') as f:
-                json.dump(query, f)
         print(json.dumps(query))
 
 
@@ -84,19 +71,9 @@ def eval_command(args):
         with open(path) as f:
             inputs.append(json.load(f))
 
-    queries = {(x['name'], x['version']): x for x in inputs}
     for out in eval_queries(inputs):
         with open(out) as f:
-            setup = json.load(f)
-            query = queries.get((setup['name'], setup['version']))
-            setup['source'] = query['source']
-            if args.output_dir:
-                path = get_output_path(args.output_dir,
-                                       setup['metadata']['name'],
-                                       setup['metadata']['version'])
-                with open(path, 'w') as f:
-                    json.dump(setup, f)
-            print(json.dumps(setup))
+            print(f.read())
 
 
 parser = argparse.ArgumentParser(prog='pypi-index')
@@ -115,7 +92,6 @@ query_parser.add_argument('package', nargs='+',
 query_parser.add_argument('-i', '--index-url',
                           default='https://pypi.org/simple',
                           help='url of python package index to query')
-query_parser.add_argument('-o', '--output-dir')
 
 eval_parser = subparsers.add_parser('eval')
 eval_parser.set_defaults(handler=eval_command)
@@ -123,7 +99,6 @@ eval_parser.add_argument('file', nargs='+',
                          help='file(s) with package query metadata to '
                               'evaluate, if file is a single dash a json list '
                               'will be read from standard input')
-eval_parser.add_argument('-o', '--output-dir')
 eval_parser.add_argument('--eval-backend', default='nix', choices=('nix',))
 
 
