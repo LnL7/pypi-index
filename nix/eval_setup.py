@@ -20,8 +20,7 @@ def to_value(x):
 
 parser = argparse.ArgumentParser(prog='setup')
 parser.add_argument('setup_file', nargs='?', default='setup.py')
-parser.add_argument('--name')
-parser.add_argument('--version')
+parser.add_argument('--data')
 args = parser.parse_args()
 
 # Based on https://gist.github.com/shlevy/315d6b686065b31a0962d6e879cc0e32
@@ -52,8 +51,7 @@ for key in ('zip_safe', 'setup_requires', 'install_requires', 'extras_require',
     if value or value is False:
         options[key] = to_value(value)
 
-name = args.name or metadata['name']
-version = args.version or metadata['version']
-data = {'name': name, 'version': version,
-        'metadata':  metadata, 'options': options}
+data = json.loads(args.data)
+data['metadata'] = metadata
+data['options'] = options
 print(json.dumps(data))

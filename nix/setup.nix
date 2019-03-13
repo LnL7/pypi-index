@@ -8,12 +8,12 @@ let
       ({ stdenv, fetchurl, unzip, python, pip, wheel, pyyaml, cffi, pbr, setuptools_scm, six }:
       stdenv.mkDerivation {
         name = "setup.json";
-        src = fetchurl args.source;
+        src = fetchurl args.fetchurl;
         buildInputs = [ unzip python pip wheel pyyaml cffi pbr setuptools_scm six ];
         phases = [ "unpackPhase" "installPhase" ];
         installPhase = ''
           cp ${./eval_setup.py} eval_setup.py
-          python eval_setup.py --name "${args.name}" --version "${args.version}" > $out
+          python eval_setup.py --data '${builtins.toJSON args}' > $out
         '';
       }) { };
 in

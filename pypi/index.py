@@ -37,7 +37,7 @@ def locate_digests(loc, pkg):
         url, (digest_algo, digest) = digests[0]
         return {'name': normalize_name(dist.name),
                 'version': dist.version,
-                'source': {'url': url, digest_algo: digest}}
+                'fetchurl': {'url': url, digest_algo: digest}}
     else:
         raise SystemExit('error: failed to locate package')
 
