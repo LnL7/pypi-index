@@ -95,8 +95,11 @@ def expr_command(args):
                           cfg['options'].get('setup_requires', [])]
         install_requires = [re.split(r'[<=>!]', x)[0] for x in
                             cfg['options'].get('install_requires', [])]
+        nix_build_inputs = args.add_build_input + setup_requires
+        nix_propagated_build_inputs = args.add_propagated_build_input \
+            + install_requires
         nix_inputs = ['buildPythonPackage', 'fetchurl'] \
-                + setup_requires + install_requires
+            + nix_build_inputs + nix_propagated_build_inputs
         nix_description = cfg['metadata'].get('description')
         nix_license = {'MIT': 'mit'}.get(cfg['metadata'].get('license'))
         print('  %s_%s = callPackage' % (name, version))
@@ -108,10 +111,12 @@ def expr_command(args):
         print('         url = "%s";' % cfg['fetchurl']['url'])
         print('         sha256 = "%s";' % cfg['fetchurl']['sha256'])
         print('       };')
-        if setup_requires:
-            print('       buildInputs = [ %s ];' % ' '.join(setup_requires))
-        if install_requires:
-            print('       propagatedBuildInputs = [ %s ];' % ' '.join(install_requires))
+        if nix_build_inputs:
+            print('       buildInputs = [ %s ];' %
+                  ' '.join(set(nix_build_inputs)))
+        if nix_propagated_build_inputs:
+            print('       propagatedBuildInputs = [ %s ];' %
+                  ' '.join(set(nix_propagated_build_inputs)))
         print('       meta = with lib; {')
         if nix_description:
             print('         description = "%s";' % nix_description)
@@ -153,6 +158,8 @@ expr_parser.add_argument('file', nargs='+',
                          help='file(s) with package query metadata to '
                               'evaluate, if file is a single dash a json list '
                               'will be read from standard input')
+expr_parser.add_argument('--add-build-input', default=[], action='append')
+expr_parser.add_argument('--add-propagated-build-input', default=[], action='append')
 expr_parser.add_argument('--output-type', default='nix', choices=('nix',))
 
 
