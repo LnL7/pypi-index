@@ -4,11 +4,13 @@ Generate a metadata index for python packages.
 __all__ = ('main',)
 
 import argparse
+import itertools
 import json
 import os
 import re
 import subprocess
 import sys
+from collections import defaultdict
 
 import pypi
 from distlib.locators import SimpleScrapingLocator, normalize_name
@@ -77,6 +79,45 @@ def eval_command(args):
             print(f.read())
 
 
+def build_command(args):
+    loc = SimpleScrapingLocator(args.index_url, scheme='legacy')
+
+    iteration = itertools.count(1)
+    index = defaultdict(dict)
+    skip = set()
+    requires = [x for x in args.package]
+
+    while requires:
+        inputs = []
+        for req in requires:
+            data = locate_digests(loc, req)
+            inputs.append(data)
+
+        skip |= set(requires)
+        requires = []
+        for out in eval_queries(inputs):
+            with open(out) as f:
+                data = json.load(f)
+                name, version = data['name'], data['version']
+                index[name][version] = data
+                requires.extend(data['options'].get('setup_requires', []))
+                requires.extend(data['options'].get('install_requires', []))
+                requires.extend(data['options'].get('tests_require', []))
+
+        requires = [x for x in requires if x not in skip]
+
+        n = sum(len(x) for x in index.values())
+        i = next(iteration)
+        print('[{:>2}/{:>2}] building index...'.format(n, i), file=sys.stderr)
+
+    for name, versions in index.items():
+        for version, data in versions.items():
+            if args.print_requirements:
+                print('{}=={}'.format(name, version))
+            else:
+                print(json.dumps(data))
+
+
 def expr_command(args):
     files = args.file
     inputs = []
@@ -117,6 +158,7 @@ def expr_command(args):
         if nix_propagated_build_inputs:
             print('       propagatedBuildInputs = [ %s ];' %
                   ' '.join(set(nix_propagated_build_inputs)))
+        print('       doCheck = false;')
         print('       meta = with lib; {')
         if nix_description:
             print('         description = "%s";' % nix_description)
@@ -151,6 +193,14 @@ eval_parser.add_argument('file', nargs='+',
                               'evaluate, if file is a single dash a json list '
                               'will be read from standard input')
 eval_parser.add_argument('--eval-backend', default='nix', choices=('nix',))
+
+build_parser = subparsers.add_parser('build')
+build_parser.set_defaults(handler=build_command)
+build_parser.add_argument('package', nargs='+')
+build_parser.add_argument('--print-requirements', action='store_true')
+build_parser.add_argument('-i', '--index-url',
+                          default='https://pypi.org/simple',
+                          help='url of python package index to query')
 
 expr_parser = subparsers.add_parser('expr')
 expr_parser.set_defaults(handler=expr_command)
