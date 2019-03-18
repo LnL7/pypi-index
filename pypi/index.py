@@ -13,6 +13,7 @@ import sys
 from collections import defaultdict
 
 import pypi
+import requests
 from distlib.locators import SimpleScrapingLocator, normalize_name
 
 pypi_exprs = os.path.abspath(os.path.join(__file__, '..', '..', 'nix'))
@@ -33,14 +34,28 @@ def digest_sort_key(item):
     return {'zip': 1, 'whl': 2}.get(url.rpartition('.')[2], 0)
 
 
+def digest_header_fallback(url):
+    res = requests.head(url)
+    sha256 = res.headers.get('X-Checksum-Sha256')
+    if sha256:
+        return 'sha256', sha256
+    else:
+        return None, None
+
+
 def locate_digests(loc, pkg):
     dist = loc.locate(pkg)
     if dist:
         digests = sorted(dist.digests.items(), key=digest_sort_key)
         url, (digest_algo, digest) = digests[0]
-        return {'name': normalize_name(dist.name),
-                'version': dist.version,
-                'fetchurl': {'url': url, digest_algo: digest}}
+        if digest_algo not in ('sha256', 'sha521'):
+            digest_algo, digest = digest_header_fallback(url)
+        if digest_algo:
+            return {'name': normalize_name(dist.name),
+                    'version': dist.version,
+                    'fetchurl': {'url': url, digest_algo: digest}}
+        else:
+            raise SystemExit('error: failed to retrieve digest')
     else:
         raise SystemExit('error: failed to locate package')
 
