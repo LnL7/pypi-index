@@ -20,7 +20,7 @@ pypi_exprs = os.path.abspath(os.path.join(__file__, '..', '..', 'nix'))
 
 
 def build_nix_expression(path, *args, **kwargs):
-    argv = ['nix-build', '--no-out-link', path,
+    argv = ['nix-build', '--no-out-link', '--keep-going', path,
             '-I', 'pypi={}'.format(pypi_exprs)]
     argv.extend(args)
     for name, value in kwargs.items():
