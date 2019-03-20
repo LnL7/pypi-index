@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import argparse
-import json
 import tokenize
 
 import setuptools
@@ -21,11 +20,11 @@ def to_value(x):
 parser = argparse.ArgumentParser(prog='setup')
 parser.add_argument('setup_file', nargs='?', default='setup.py')
 parser.add_argument('--data')
-args = parser.parse_args()
+eval_setup_args = parser.parse_args()
 
 # Based on https://gist.github.com/shlevy/315d6b686065b31a0962d6e879cc0e32
 setuptools.distutils.core._setup_stop_after = 'config'
-with (getattr(tokenize, 'open', open))(args.setup_file) as setup_py:
+with (getattr(tokenize, 'open', open))(eval_setup_args.setup_file) as setup_py:
     # Taken from from pip
     exec(compile(''.join(setup_py), __file__, 'exec'))
     cfg = setuptools.distutils.core._setup_distribution
@@ -51,7 +50,9 @@ for key in ('zip_safe', 'setup_requires', 'install_requires', 'extras_require',
     if value or value is False:
         options[key] = to_value(value)
 
-data = json.loads(args.data)
+
+import json
+data = json.loads(eval_setup_args.data)
 data['metadata'] = metadata
 data['options'] = options
 print(json.dumps(data))
