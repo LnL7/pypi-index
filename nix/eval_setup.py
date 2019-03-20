@@ -22,6 +22,9 @@ parser.add_argument('setup_file', nargs='?', default='setup.py')
 parser.add_argument('--data')
 eval_setup_args = parser.parse_args()
 
+# Disable installation of setup_requires if setuptools is used.
+setuptools._install_setup_requires = lambda attrs: None
+
 # Based on https://gist.github.com/shlevy/315d6b686065b31a0962d6e879cc0e32
 setuptools.distutils.core._setup_stop_after = 'config'
 with (getattr(tokenize, 'open', open))(eval_setup_args.setup_file) as setup_py:
