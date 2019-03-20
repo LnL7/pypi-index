@@ -39,7 +39,7 @@ def build_nix_expression(path, *args, **kwargs):
 
 def digest_sort_key(item):
     url, (digest_algo, digest) = item
-    return {'zip': 1, 'whl': 2}.get(url.rpartition('.')[2], 0)
+    return {'zip': 1}.get(url.rpartition('.')[2], 0)
 
 
 def digest_header_fallback(url):
@@ -55,8 +55,12 @@ def locate_digests(loc, pkg):
     pkg, _, _ = pkg.partition('#')
     dist = loc.locate(pkg)
     if dist:
-        digests = sorted(dist.digests.items(), key=digest_sort_key)
-        url, (digest_algo, digest) = digests[0]
+        digests = filter(lambda x: not x[0].endswith('.whl'),
+                         sorted(dist.digests.items(), key=digest_sort_key))
+        try:
+            url, (digest_algo, digest) = next(digests)
+        except StopIteration:
+            return None
         if digest_algo not in ('sha256', 'sha521'):
             digest_algo, digest = digest_header_fallback(url)
         if digest_algo:
@@ -82,7 +86,10 @@ def query_command(args):
         pkgs.extend(json.load(sys.stdin))
     for pkg in pkgs:
         query = locate_digests(loc, pkg)
-        print(json.dumps(query))
+        if query:
+            print(json.dumps(query))
+        else:
+            print('error: could not locate source for {}'.format(pkg), file=sys.stderr)
 
 
 def eval_command(args):
@@ -113,7 +120,10 @@ def build_command(args):
         inputs = []
         for req in requires:
             data = locate_digests(loc, req)
-            inputs.append(data)
+            if data:
+                inputs.append(data)
+            else:
+                print('error: could not locate source for {}'.format(req), file=sys.stderr)
 
         skip |= set(requires)
         requires = []
