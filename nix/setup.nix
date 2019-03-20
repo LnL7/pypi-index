@@ -21,7 +21,7 @@ let
           failureHooks+=" printFailure"
 
           cp ${./eval_setup.py} eval_setup.py
-          python eval_setup.py --data '${builtins.toJSON args}' > $out
+          python eval_setup.py $out --data '${builtins.toJSON args}'
         '';
       }) { };
 in

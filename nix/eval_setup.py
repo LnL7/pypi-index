@@ -19,6 +19,7 @@ def to_value(x):
 
 parser = argparse.ArgumentParser(prog='setup')
 parser.add_argument('setup_file', nargs='?', default='setup.py')
+parser.add_argument('output')
 parser.add_argument('--data')
 eval_setup_args = parser.parse_args()
 
@@ -58,4 +59,5 @@ import json
 data = json.loads(eval_setup_args.data)
 data['metadata'] = metadata
 data['options'] = options
-print(json.dumps(data))
+with open(eval_setup_args.output, 'w') as f:
+    json.dump(data, f)

@@ -113,7 +113,7 @@ def build_command(args):
 
     iteration = itertools.count(1)
     index = defaultdict(dict)
-    skip = set()
+    skip = set(args.blacklist)
     requires = [x for x in args.package]
 
     while requires:
@@ -232,8 +232,9 @@ eval_parser.add_argument('--eval-backend', default='nix', choices=('nix',))
 build_parser = subparsers.add_parser('build')
 build_parser.set_defaults(handler=build_command)
 build_parser.add_argument('package', nargs='+')
-build_parser.add_argument('--recurse', action='store_true', default=True)
+build_parser.add_argument('--recurse', default=True, action='store_true')
 build_parser.add_argument('--no-recurse', action='store_false', dest='recurse')
+build_parser.add_argument('--blacklist', default=[], action='append')
 build_parser.add_argument('--print-requirements', action='store_true')
 build_parser.add_argument('-i', '--index-url',
                           default='https://pypi.org/simple',
