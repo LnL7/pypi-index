@@ -52,6 +52,7 @@ def digest_header_fallback(url):
 
 
 def locate_digests(loc, pkg):
+    pkg, _, _ = pkg.partition('#')
     dist = loc.locate(pkg)
     if dist:
         digests = sorted(dist.digests.items(), key=digest_sort_key)
