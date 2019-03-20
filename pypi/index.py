@@ -125,6 +125,9 @@ def build_command(args):
                 requires.extend(data['options'].get('install_requires', []))
                 requires.extend(data['options'].get('tests_require', []))
 
+        if not args.recurse:
+            break
+
         requires = [x for x in requires if x not in skip]
 
         n = sum(len(x) for x in index.values())
@@ -218,6 +221,8 @@ eval_parser.add_argument('--eval-backend', default='nix', choices=('nix',))
 build_parser = subparsers.add_parser('build')
 build_parser.set_defaults(handler=build_command)
 build_parser.add_argument('package', nargs='+')
+build_parser.add_argument('--recurse', action='store_true', default=True)
+build_parser.add_argument('--no-recurse', action='store_false', dest='recurse')
 build_parser.add_argument('--print-requirements', action='store_true')
 build_parser.add_argument('-i', '--index-url',
                           default='https://pypi.org/simple',
