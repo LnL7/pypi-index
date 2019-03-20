@@ -4,6 +4,7 @@ Generate a metadata index for python packages.
 __all__ = ('main',)
 
 import argparse
+import glob
 import itertools
 import json
 import os
@@ -20,13 +21,20 @@ pypi_exprs = os.path.abspath(os.path.join(__file__, '..', '..', 'nix'))
 
 
 def build_nix_expression(path, *args, **kwargs):
-    argv = ['nix-build', '--no-out-link', '--keep-going', path,
-            '-I', 'pypi={}'.format(pypi_exprs)]
-    argv.extend(args)
-    for name, value in kwargs.items():
-        argv.extend(['--argstr', name, value])
-    output = subprocess.check_output(argv)
-    return output.decode('utf-8')
+    try:
+        for result in glob.glob('build/result*'):
+            os.remove(result)
+        argv = ['nix', 'build', '--option', 'keep-going', 'true',
+                '-I', 'pypi={}'.format(pypi_exprs), '-f', path,
+                '-o', 'build/result']
+        argv.extend(args)
+        for name, value in kwargs.items():
+            argv.extend(['--argstr', name, value])
+        subprocess.check_call(argv)
+        return glob.glob('build/result*')
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(exc.returncode)
+
 
 
 def digest_sort_key(item):
@@ -61,10 +69,8 @@ def locate_digests(loc, pkg):
 
 
 def eval_queries(inputs):
-    stdout = build_nix_expression('<pypi/setup.nix>',
-                                  inputs=json.dumps(inputs))
-    for out in stdout.splitlines():
-        yield out
+    return build_nix_expression('<pypi/setup.nix>',
+                                inputs=json.dumps(inputs))
 
 
 def query_command(args):
