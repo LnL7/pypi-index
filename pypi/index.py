@@ -134,7 +134,8 @@ def build_command(args):
                 index[name][version] = data
                 requires.extend(data['options'].get('setup_requires', []))
                 requires.extend(data['options'].get('install_requires', []))
-                requires.extend(data['options'].get('tests_require', []))
+                if args.tests:
+                    requires.extend(data['options'].get('tests_require', []))
 
         if not args.recurse:
             break
@@ -233,7 +234,9 @@ build_parser = subparsers.add_parser('build')
 build_parser.set_defaults(handler=build_command)
 build_parser.add_argument('package', nargs='+')
 build_parser.add_argument('--recurse', default=True, action='store_true')
-build_parser.add_argument('--no-recurse', action='store_false', dest='recurse')
+build_parser.add_argument('--no-recurse', dest='recurse', action='store_false')
+build_parser.add_argument('--tests', default=True, action='store_true')
+build_parser.add_argument('--no-tests', dest='tests', action='store_false')
 build_parser.add_argument('--blacklist', default=[], action='append')
 build_parser.add_argument('--print-requirements', action='store_true')
 build_parser.add_argument('-i', '--index-url',
