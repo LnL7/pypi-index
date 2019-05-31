@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import sys
 import tokenize
 
 import setuptools
@@ -22,6 +23,8 @@ parser.add_argument('setup_file', nargs='?', default='setup.py')
 parser.add_argument('output')
 parser.add_argument('--data')
 eval_setup_args = parser.parse_args()
+
+sys.argv = ['python', 'setup.py', '--name']
 
 # Disable installation of setup_requires if setuptools is used.
 setuptools._install_setup_requires = lambda attrs: None
