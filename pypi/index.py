@@ -167,6 +167,7 @@ def expr_command(args):
     print('{')
     for cfg in inputs:
         name, version = cfg['name'], cfg['version'].replace('.', '_')
+        wheel = cfg['fetchurl']['url'].endswith('.whl')
         setup_requires = [re.split(r'[<=>!]', x)[0] for x in
                           cfg['options'].get('setup_requires', [])]
         install_requires = [re.split(r'[<=>!]', x)[0] for x in
@@ -187,6 +188,8 @@ def expr_command(args):
         print('         url = "%s";' % cfg['fetchurl']['url'])
         print('         sha256 = "%s";' % cfg['fetchurl']['sha256'])
         print('       };')
+        if wheel:
+            print('       format = "wheel";')
         if nix_build_inputs:
             print('       buildInputs = [ %s ];' %
                   ' '.join(set(nix_build_inputs)))
