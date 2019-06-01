@@ -39,7 +39,7 @@ def build_nix_expression(path, *args, **kwargs):
 
 def digest_sort_key(item):
     url, (digest_algo, digest) = item
-    return {'zip': 1}.get(url.rpartition('.')[2], 0)
+    return {'zip': 1, 'whl': 2}.get(url.rpartition('.')[2], 0)
 
 
 def digest_header_fallback(url):
@@ -55,8 +55,7 @@ def locate_digests(loc, pkg):
     pkg, _, _ = pkg.partition('#')
     dist = loc.locate(pkg)
     if dist:
-        digests = filter(lambda x: not x[0].endswith('.whl'),
-                         sorted(dist.digests.items(), key=digest_sort_key))
+        digests = iter(sorted(dist.digests.items(), key=digest_sort_key))
         try:
             url, (digest_algo, digest) = next(digests)
         except StopIteration:
